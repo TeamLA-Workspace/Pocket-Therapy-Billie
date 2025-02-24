@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Therapy Chatbot - Billie</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+        
+        #cursor {
+            animation: blink 1s infinite;
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-b from-pink-100 to-blue-200 min-h-screen">
+    <!-- Navigation bar -->
+    <nav class="bg-white shadow p-4 flex items-center">
+        <!-- Left side: Home & Title -->
+        <div class="flex items-center space-x-4">
+            <!-- Home Button -->
+            <button onclick="goHome()" class="bg-pink-200 text-pink-700 px-3 py-1 rounded hover:bg-pink-300 transition-colors">
+        Home
+      </button>
+            <!-- Chatbot Title -->
+            <h1 class="text-xl font-bold text-gray-800">Pocket Therapy</h1>
+        </div>
+
+        <!-- Right side: Language Selector & Other Buttons -->
+        <div class="ml-auto flex items-center space-x-4">
+            <!-- Language Selector -->
+            <select onchange="selectLanguage(this.value)" class="border border-gray-300 rounded px-2 py-1 text-gray-700 focus:outline-none">
+        <option value="English">English</option>
+        <option value="Spanish">Español</option>
+        <option value="French">Français</option>
+        <option value="German">Deutsch</option>
+      </select>
+
+            <!-- Journal Mode -->
+            <button onclick="toggleJournalNotepad()" class="bg-purple-200 text-purple-700 px-3 py-1 rounded hover:bg-purple-300 transition-colors">
+        Journal Mode
+      </button>
+
+            <!-- Meditation & Breathing -->
+            <button onclick="openMeditation()" class="bg-green-200 text-green-700 px-3 py-1 rounded hover:bg-green-300 transition-colors">
+        Meditation
+      </button>
+
+            <!-- CBT Exercises -->
+            <button onclick="openCBT()" class="bg-blue-200 text-blue-700 px-3 py-1 rounded hover:bg-blue-300 transition-colors">
+        CBT Exercises
+      </button>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="bg-white shadow-lg rounded-2xl p-6 w-full max-w-md mx-auto mt-8">
+        <!-- Large image of Billie and caption -->
+        <div id="billie-intro" class="flex flex-col items-center mb-4">
+            <img src="{{ url_for('static', filename='images/billie-bird.png') }}" alt="Billie" class="w-48 h-48 object-cover rounded-full" />
+            <p class="text-center text-gray-700 mt-4 mx-2">
+                Billie is here to help! Click the button you feel most reflects how you feel and Billie will respond as needed.
+            </p>
+        </div>
+
+        <!-- Mood Selection Section -->
+        <div id="mood-selection" class="text-center mt-6">
+            <p class="text-gray-600 font-medium">How are you feeling today?</p>
+            <div class="mt-2 flex flex-wrap justify-center gap-2">
+                <button onclick="selectMood('Happy')" class="bg-yellow-300 hover:bg-yellow-400 text-white px-4 py-2 rounded-lg">
+          😊 I'm Happy
+        </button>
+                <button onclick="selectMood('Down')" class="bg-blue-300 hover:bg-blue-400 text-white px-4 py-2 rounded-lg">
+          😔 I'm Feeling Down
+        </button>
+                <button onclick="selectMood('Stressed')" class="bg-red-300 hover:bg-red-400 text-white px-4 py-2 rounded-lg">
+          😣 Stressed
+        </button>
+                <button onclick="selectMood('Okay')" class="bg-green-300 hover:bg-green-400 text-white px-4 py-2 rounded-lg">
+          😌 I'm Okay
+        </button>
+            </div>
+        </div>
+
+        <!-- Chat Section (Hidden initially) -->
+        <div id="chat-container" class="hidden mt-4">
+            <!-- Chat display area -->
+            <div id="chatbox" class="space-y-3 h-64 overflow-y-auto border p-3 rounded-lg bg-gray-100"></div>
+
+            <!-- Chat input area + Inspire Me + Voice Input -->
+            <div class="mt-4 flex flex-col space-y-2">
+                <div class="flex">
+                    <input id="user-input" type="text" placeholder="Type a message..." class="w-full p-2 rounded-lg border border-gray-300 focus:outline-none" onkeypress="if(event.key === 'Enter') sendChatMessage()">
+                    <button id="send-btn" onclick="sendChatMessage()" class="ml-2 bg-blue-400 hover:bg-blue-500 text-white px-4 py-2 rounded-lg">
+            Send
+          </button>
+                </div>
+
+                <div class="flex justify-end space-x-2">
+                    <button onclick="startVoiceInput()" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-lg">
+            🎤 Voice
+          </button>
+                    <button onclick="getInspiration()" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg">
+            Inspire Me
+          </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal (for immediate help) -->
+    <div id="help-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-80">
+            <h2 class="text-xl font-bold mb-2">Need Immediate Help?</h2>
+            <p class="mb-4">
+                If you're feeling in crisis, please consider calling a trusted hotline or contacting emergency services.
+            </p>
+            <p class="text-sm text-gray-600">
+                Hotline: 988 (if in US) or your local emergency number.
+            </p>
+            <button onclick="document.getElementById('help-modal').classList.add('hidden')" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded">
+        Close
+      </button>
+        </div>
+    </div>
+
+    <!-- Journal Notepad Modal -->
+    <div id="journal-notepad" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Therapy Journal</h2>
+                <button onclick="toggleJournalNotepad()" class="text-red-500 text-xl">&times;</button>
+            </div>
+            <!-- Journal display area -->
+            <div id="journal-box" class="bg-gray-100 p-4 rounded-md shadow-inner h-60 overflow-y-auto mb-4"></div>
+            <!-- Journal input area -->
+            <input id="journal-input" type="text" placeholder="Write your thoughts here..." class="mt-4 p-2 border rounded w-full" onkeypress="if(event.key === 'Enter') sendJournalEntry()">
+            <div class="mt-2 flex justify-between items-center">
+                <div>
+                    <button onclick="sendJournalEntry()" class="px-4 py-2 bg-green-500 text-white rounded">
+            Submit
+          </button>
+                    <button onclick="loadJournalEntries()" class="px-4 py-2 bg-blue-500 text-white rounded">
+            Load Previous Entries
+          </button>
+                </div>
+                <button onclick="clearJournal()" class="px-4 py-2 bg-red-500 text-white rounded">
+          Clear Journal
+        </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meditation Modal -->
+    <div id="meditation-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Guided Meditation & Breathing</h2>
+                <button onclick="closeMeditation()" class="text-red-500 text-xl">&times;</button>
+            </div>
+            <p class="mb-2 text-gray-700">
+                1. Sit comfortably with your back straight and close your eyes.<br> 2. Take a slow, deep breath in through your nose for a count of 4.<br> 3. Hold your breath for a count of 4.<br> 4. Exhale slowly through your mouth for a count of 4.<br>                5. Repeat for several cycles, focusing on the sensation of your breath.
+            </p>
+            <p class="text-gray-700 mb-4">
+                As thoughts come to mind, gently acknowledge them and let them pass, returning your focus to your breath.
+            </p>
+            <button onclick="closeMeditation()" class="px-4 py-2 bg-blue-500 text-white rounded">Close</button>
+        </div>
+    </div>
+
+    <!-- CBT Modal -->
+    <div id="cbt-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">CBT Exercises</h2>
+                <button onclick="closeCBT()" class="text-red-500 text-xl">&times;</button>
+            </div>
+            <p class="mb-2 text-gray-700">
+                Use this section to challenge negative thoughts. Enter your negative thought below, and Billie will help restructure it.
+            </p>
+            <!-- Display CBT conversation -->
+            <div id="cbt-box" class="bg-gray-100 p-4 rounded-md shadow-inner h-40 overflow-y-auto mb-4"></div>
+            <!-- CBT input area -->
+            <input id="cbt-input" type="text" placeholder="Enter your negative thought..." class="mt-2 p-2 border rounded w-full" onkeypress="if(event.key === 'Enter') submitCBTThought()">
+            <div class="mt-4 flex justify-end">
+                <button onclick="submitCBTThought()" class="px-4 py-2 bg-green-500 text-white rounded">
+          Submit Thought
+        </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>
